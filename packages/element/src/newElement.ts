@@ -45,6 +45,7 @@ import type {
   ElementsMap,
   ExcalidrawArrowElement,
   ExcalidrawElbowArrowElement,
+  ExcalidrawTableElement,
 } from "./types";
 
 export type ElementConstructorOpts = MarkOptional<
@@ -174,6 +175,24 @@ export const newIframeElement = (
 ): NonDeleted<ExcalidrawIframeElement> => {
   return {
     ..._newElementBase<ExcalidrawIframeElement>("iframe", opts),
+  };
+};
+
+export const newTableElement = (
+  opts: {
+    rows: number;
+    columns: number;
+  } & ElementConstructorOpts,
+): NonDeleted<ExcalidrawTableElement> => {
+  const cells = Array(opts.rows)
+    .fill(null)
+    .map(() => Array(opts.columns).fill(""));
+
+  return {
+    ..._newElementBase<ExcalidrawTableElement>("table", opts),
+    rows: opts.rows,
+    columns: opts.columns,
+    cells,
   };
 };
 

@@ -212,7 +212,8 @@ export type ExcalidrawElement =
   | ExcalidrawFrameElement
   | ExcalidrawMagicFrameElement
   | ExcalidrawIframeElement
-  | ExcalidrawEmbeddableElement;
+  | ExcalidrawEmbeddableElement
+  | ExcalidrawTableElement;
 
 export type ExcalidrawNonSelectionElement = Exclude<
   ExcalidrawElement,
@@ -376,6 +377,14 @@ export type ExcalidrawFreeDrawElement = _ExcalidrawElementBase &
 export type FileId = string & { _brand: "FileId" };
 
 export type ExcalidrawElementType = ExcalidrawElement["type"];
+
+export type ExcalidrawTableElement = _ExcalidrawElementBase &
+  Readonly<{
+    type: "table";
+    rows: number;
+    columns: number;
+    cells: string[][];
+  }>;
 
 /**
  * Map of excalidraw elements.
