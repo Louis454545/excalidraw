@@ -47,7 +47,7 @@ import {
 } from "../scene";
 
 import { SHAPES } from "./shapes";
-
+import { actionTable } from "../actions/actionTable";
 import "./Actions.scss";
 
 import { useDevice } from "./App";
@@ -361,6 +361,32 @@ export const ShapesSwitcher = ({
           />
         );
       })}
+      {UIOptions.tools?.table !== false && (
+        <ToolButton
+          className={clsx("Shape")}
+          key="table"
+          type="radio"
+          icon={actionTable.icon}
+          checked={activeTool.type === "table"}
+          name="editor-current-shape"
+          title={`${capitalizeString(t("toolBar.table"))} — ${KEYS.T.toLocaleUpperCase()}`} // Assuming 'T' as a potential shortcut
+          keyBindingLabel={KEYS.T.toLocaleUpperCase()}
+          aria-label={capitalizeString(t("toolBar.table"))}
+          aria-keyshortcuts={KEYS.T.toLocaleUpperCase()}
+          data-testid="toolbar-table"
+          onPointerDown={({ pointerType }) => {
+            if (!appState.penDetected && pointerType === "pen") {
+              app.togglePenMode(true);
+            }
+          }}
+          onChange={({ pointerType }) => {
+            if (appState.activeTool.type !== "table") {
+              trackEvent("toolbar", "table", "ui");
+            }
+            app.setActiveTool({ type: "table" });
+          }}
+        />
+      )}
       <div className="App-toolbar__divider" />
 
       <DropdownMenu open={isExtraToolsMenuOpen}>

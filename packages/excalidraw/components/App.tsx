@@ -160,6 +160,8 @@ import {
   isFlowchartNodeElement,
   isBindableElement,
   isTextElement,
+  isTableElement,
+  type ExcalidrawTableElement,
 } from "@excalidraw/element";
 
 import {
@@ -5683,6 +5685,14 @@ class App extends React.Component<AppProps, AppState> {
         insertAtParentCenter: !event.altKey,
         container,
       });
+    }
+
+    // If we did not hit anything, or hit something other than a table,
+    // ensure we're not in table editing mode.
+    if (!hitElement || !isTableElement(hitElement)) {
+      if (this.state.editingTableModel) {
+        this.setState({ editingTableModel: null });
+      }
     }
   };
 

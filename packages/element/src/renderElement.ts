@@ -68,6 +68,7 @@ import type {
   ExcalidrawFrameLikeElement,
   NonDeletedSceneElementsMap,
   ElementsMap,
+  ExcalidrawTableElement,
 } from "./types";
 
 import type { StrokeOptions } from "perfect-freehand";
@@ -533,6 +534,99 @@ const drawElementOnCanvas = (
         throw new Error(`Unimplemented type ${element.type}`);
       }
     }
+    break;
+  }
+  case "table": {
+    // Draw outer border and background using cached shape
+    // (assumes ShapeCache.generateElementShape handles "table" by returning a rectangle)
+    const shape = ShapeCache.get(element);
+    if (shape) {
+      rc.draw(shape);
+    }
+
+    const tableElement = element as ExcalidrawTableElement; // Cast to access table-specific props
+
+    // Calculate cell dimensions
+    const cellWidth = tableElement.width / tableElement.columns;
+    const cellHeight = tableElement.height / tableElement.rows;
+
+    // Common options for inner lines (thin and less rough)
+    const lineOptions = {
+      stroke: tableElement.strokeColor,
+      strokeWidth: tableElement.strokeWidth / 2, // Thinner lines for inner grid
+      roughness: tableElement.roughness / 2, // Less roughness for inner lines
+      seed: tableElement.seed, // Use the same seed for consistency
+      // fillStyle, fill, etc. are not needed for lines
+    };
+
+    // Draw inner row lines
+    for (let i = 1; i < tableElement.rows; i++) {
+      rc.line(
+        0, // x1
+        i * cellHeight, // y1
+        tableElement.width, // x2
+        i * cellHeight, // y2
+        lineOptions,
+      );
+    }
+
+    // Draw inner column lines
+    for (let i = 1; i < tableElement.columns; i++) {
+      rc.line(
+        i * cellWidth, // x1
+        0, // y1
+        i * cellWidth, // x2
+        tableElement.height, // y2
+        lineOptions,
+      );
+    }
+
+    // Render cell text
+    context.save();
+    context.font = getFontString(tableElement); // Assumes tableElement has font properties
+    context.fillStyle = tableElement.strokeColor; // Text color
+    context.textAlign = "left";
+    context.textBaseline = "top";
+
+    const padding = 5; // Simple padding for text within cells
+
+    for (let r = 0; r < tableElement.rows; r++) {
+      for (let c = 0; c < tableElement.columns; c++) {
+        const text = tableElement.cells[r][c];
+        if (text) {
+          context.fillText(
+            text,
+            c * cellWidth + padding,
+            r * cellHeight + padding,
+          );
+        }
+      }
+    }
+    context.restore();
+
+    // Visual feedback for active editing cell
+    if (
+      appState.editingTableModel?.elementId === tableElement.id &&
+      appState.editingTableModel.cell
+    ) {
+      const { row: activeRow, col: activeCol } = appState.editingTableModel.cell;
+      const cellX = activeCol * cellWidth;
+      const cellY = activeRow * cellHeight;
+
+      context.save();
+      // Translucent overlay
+      context.fillStyle = "rgba(0, 100, 255, 0.15)";
+      context.fillRect(cellX, cellY, cellWidth, cellHeight);
+
+      // Thicker border
+      context.strokeStyle = "rgba(0, 100, 255, 0.8)";
+      // Ensure the highlight is visible even for thin original strokeWidth
+      context.lineWidth = Math.max(1, tableElement.strokeWidth / 2 + 0.5);
+      context.strokeRect(cellX, cellY, cellWidth, cellHeight);
+      context.restore();
+    }
+    break;
+  }
   }
 };
 
@@ -822,7 +916,8 @@ export const renderElement = (
     case "image":
     case "text":
     case "iframe":
-    case "embeddable": {
+    case "embeddable":
+    case "table": {
       // TODO investigate if we can do this in situ. Right now we need to call
       // beforehand because math helpers (such as getElementAbsoluteCoords)
       // rely on existing shapes

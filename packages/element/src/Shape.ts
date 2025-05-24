@@ -28,6 +28,7 @@ import type {
   ExcalidrawSelectionElement,
   ExcalidrawLinearElement,
   Arrowhead,
+  ExcalidrawTableElement,
 } from "./types";
 
 import type { Drawable, Options } from "roughjs/bin/core";
@@ -326,7 +327,8 @@ export const _generateElementShape = (
   switch (element.type) {
     case "rectangle":
     case "iframe":
-    case "embeddable": {
+    case "embeddable":
+    case "table": {
       let shape: ElementShapes[typeof element.type];
       // this is for rendering the stroke/bg of the embeddable, especially
       // when the src url is not set

@@ -53,6 +53,7 @@ import {
   isImageElement,
   isLinearElement,
   isTextElement,
+  isTableElement,
 } from "./typeChecks";
 
 import { isInGroup } from "./groups";
@@ -825,7 +826,7 @@ export const resizeSingleElement = (
   const elementsMap = scene.getNonDeletedElementsMap();
   const boundTextElement = getBoundTextElement(latestElement, elementsMap);
 
-  if (boundTextElement) {
+  if (boundTextElement && !isTableElement(latestElement)) {
     const stateOfBoundTextElementAtResize = originalElementsMap.get(
       boundTextElement.id,
     ) as typeof boundTextElement | undefined;
@@ -866,12 +867,11 @@ export const resizeSingleElement = (
     }
   }
 
-  const rescaledPoints = rescalePointsInElement(
-    origElement,
-    nextWidth,
-    nextHeight,
-    true,
-  );
+  const rescaledPoints =
+    !isTableElement(origElement) &&
+    (isLinearElement(origElement) || isFreeDrawElement(origElement))
+      ? rescalePointsInElement(origElement, nextWidth, nextHeight, true)
+      : {};
 
   let previousOrigin = pointFrom<GlobalPoint>(origElement.x, origElement.y);
 
@@ -967,12 +967,14 @@ export const resizeSingleElement = (
         fontSize: boundTextFont.fontSize,
       });
     }
+  if (!isTableElement(latestElement)) {
     handleBindTextResize(
       latestElement,
       scene,
       handleDirection,
       shouldMaintainAspectRatio,
     );
+  }
 
     updateBoundElements(latestElement, scene, {
       // TODO: confirm with MARK if this actually makes sense
@@ -1419,12 +1421,16 @@ export const resizeMultipleElements = (
       const x = anchorX + flipFactorX * (offsetX * scaleX + shiftX);
       const y = anchorY + flipFactorY * (offsetY * scaleY + shiftY);
 
-      const rescaledPoints = rescalePointsInElement(
-        orig,
-        width * flipFactorX,
-        height * flipFactorY,
-        false,
-      );
+    const rescaledPoints =
+      !isTableElement(orig) &&
+      (isLinearElement(orig) || isFreeDrawElement(orig))
+        ? rescalePointsInElement(
+            orig,
+            width * flipFactorX,
+            height * flipFactorY,
+            false,
+          )
+        : {};
 
       const update: typeof elementsAndUpdates[0]["update"] = {
         x,
@@ -1432,7 +1438,8 @@ export const resizeMultipleElements = (
         width,
         height,
         angle,
-        ...rescaledPoints,
+      // Conditionally spread points only if they exist (i.e., not a table)
+      ...(rescaledPoints.points ? { points: rescaledPoints.points } : {}),
       };
 
       if (isElbowArrow(orig)) {
@@ -1535,7 +1542,9 @@ export const resizeMultipleElements = (
           fontSize: boundTextFontSize,
           angle: isLinearElement(element) ? undefined : angle,
         });
-        handleBindTextResize(element, scene, handleDirection, true);
+        if (!isTableElement(element)) {
+          handleBindTextResize(element, scene, handleDirection, true);
+        }
       }
     }
 
